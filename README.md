@@ -1,95 +1,51 @@
 # HealScrape
 
-*Submission for "Into the Scrape-Verse" hackathon (WeMakeDevs + Bright Data)*
+Self-healing scraper for "Into the Scrape-Verse" (WeMakeDevs + Bright Data hackathon).
 
-A self-healing web scraper built with [Bright Data's Scraper Studio](https://docs.brightdata.com/datasets/scraper-studio/quickstart)
-(via the `bdata` CLI), extracting live package data from an npm registry page
-and feeding it into a small downstream app.
-
-## What this project does
-
-1. **Scrapes a niche, non-prebuilt target** — a specific npm package page
-   (`https://www.npmjs.com/package/is-odd`) — for `package_name`,
-   `current_version`, `weekly_downloads`, and `last_publish_date`. npm's
-   registry site is a developer-tooling site, not one of the 800+
-   e-commerce/social platforms Bright Data already ships prebuilt scrapers
-   for, so it had to be built from scratch with Scraper Studio's AI Flow.
-2. **Demonstrates a real self-heal event** — `bdata scraper heal` was used
-   to extend the scraper's schema in place (same Collector ID) to also
-   capture the package's `license` field. See [Self-heal demo](#self-heal-demo)
-   below for exactly what happened, including the honest result.
-3. **Feeds a downstream app** — [`app/run.js`](app/run.js) triggers the
-   scraper via the Bright Data API, prints a clean table, and appends every
-   run to a local JSON history file (`app/history.json`), so successive runs
-   are visible side by side.
-
-## Why npm, not the original target
-
-The original target site was an itch.io game page. Building the scraper for
-it worked, but **every run failed** with a `proxy_config` 403 error —
-isolated (via a control test against `example.com`, and a plain Web Unlocker
-fetch of the same itch.io URL, both of which worked fine) to itch.io
-specifically blocking Bright Data's Scraper Studio crawler pool. That's a
-site-side block, not something fixable by re-running or healing, so the
-target was switched to npm mid-build. Full trail in [PROGRESS.md](PROGRESS.md).
+Scrapes an npm package page with Bright Data's Scraper Studio, uses `bdata scraper heal`
+to patch the scraper when I ask it to grab a new field, and a small Node script consumes
+the output.
 
 ## Architecture
 
 ![HealScrape architecture](docs/architecture.svg)
 
+## Why npm and not itch.io
+
+Originally targeted an itch.io game page. Scraper built fine but every run threw:
+
+```
+"error": "Crawler error: tunneling socket could not be established, statusCode=403",
+"error_code": "proxy_config"
+```
+
+Checked it wasn't my account (ran the same scraper against `example.com`, worked fine;
+plain `bdata scrape` on the itch.io URL also worked fine) — itch.io just blocks Bright
+Data's Scraper Studio crawler IP range specifically. Switched to npm instead. Full log
+of that detour is in [PROGRESS.md](PROGRESS.md) if you want the play-by-play.
+
 ## Setup
 
-1. **Sign up for Bright Data** and apply the hackathon credit code
-   (`wemakedevs`) at [brightdata.com](https://brightdata.com).
-2. **Log in with the CLI** (no install needed — runs via `npx`):
-   ```bash
-   npx -p @brightdata/cli bdata login
-   ```
-   This opens a browser for OAuth and auto-creates the `cli_unlocker` and
-   `cli_browser` zones your account needs.
-3. **Verify:**
-   ```bash
-   npx -p @brightdata/cli bdata budget
-   ```
-4. **Set up local secrets:**
-   ```bash
-   cp .env.example .env
-   ```
-   Then fill in `.env`:
-   - `BRIGHT_DATA_API_TOKEN` — from
-     [brightdata.com/cp/setting/users](https://brightdata.com/cp/setting/users)
-     ("Show" next to your API key)
-   - `COLLECTOR_ID` — already set to `c_mt4kwj0g1s40ktkdcx` (this project's
-     scraper); change it if you rebuild your own.
-
-No other dependencies to install — the downstream app is plain Node.js
-(v18+ for built-in `fetch`) with zero npm packages.
-
-## Running the scraper
-
-Build (already done for this repo — Collector ID above):
 ```bash
-npx -p @brightdata/cli bdata scraper create https://www.npmjs.com/package/is-odd \
-  "Extract the package name, current version number, weekly downloads count, and last publish date"
+npx -p @brightdata/cli bdata login
+npx -p @brightdata/cli bdata budget   # should show your $50 credit
+cp .env.example .env                  # then fill in BRIGHT_DATA_API_TOKEN + COLLECTOR_ID
 ```
 
-Run it directly via the CLI:
-```bash
-npx -p @brightdata/cli bdata scraper run c_mt4kwj0g1s40ktkdcx \
-  https://www.npmjs.com/package/is-odd --pretty
-```
+Get your API token from `brightdata.com/cp/setting/users` ("Show" next to your key).
+COLLECTOR_ID for this repo's scraper: `c_mt4kwj0g1s40ktkdcx`.
 
-Sample output → [`sample-output.json`](sample-output.json).
+No npm install needed for the app — plain Node 18+, uses the built-in `fetch`.
 
-## Running the downstream app
+## Run it
 
 ```bash
+npx -p @brightdata/cli bdata scraper run c_mt4kwj0g1s40ktkdcx https://www.npmjs.com/package/is-odd --pretty
 node app/run.js
 ```
 
-This triggers the collector via the Bright Data API directly
-(`POST /dca/trigger_immediate` → poll `/dca/get_result`), prints a table,
-and appends the result (with a timestamp) to `app/history.json`.
+`app/run.js` hits the Bright Data API directly (`/dca/trigger_immediate` +
+`/dca/get_result`), prints a table, and appends the run to `app/history.json`.
 
 ```
 HoloScrape — latest scrape result
@@ -99,81 +55,47 @@ Version          : 3.0.1
 Weekly downloads : 1186373
 Last publish     : 8 years ago
 ----------------------------------------------
-
-Appended to app\history.json (2 runs total)
 ```
 
-## Self-heal demo
+Sample raw output: [sample-output.json](sample-output.json)
 
-**What we asked it to do:** extend the scraper in place — same Collector ID
-(`c_mt4kwj0g1s40ktkdcx`) — to also capture the package's `license` field
-alongside the existing 4 fields.
+## The self-heal part
+
+Asked it to add a `license` field without touching the collector ID:
 
 ```bash
 npx -p @brightdata/cli bdata scraper heal c_mt4kwj0g1s40ktkdcx \
-  "Also capture the package's license type (e.g. MIT) shown on the page, \
-   alongside the existing package_name, current_version, weekly_downloads, \
-   and last_publish_date fields" \
+  "Also capture the package's license type (e.g. MIT) shown on the page" \
   --url https://www.npmjs.com/package/is-odd --pretty
 ```
 
-**What Bright Data's AI Flow produced** — a genuine `awaiting_approval`
-response with a working preview showing the new field
-(full unedited output saved at [`heal-preview.json`](heal-preview.json)):
-
-```json
-{
-  "collector_id": "c_mt4kwj0g1s40ktkdcx",
-  "status": "awaiting_approval",
-  "preview_result": [
-    {
-      "package_name": "is-odd",
-      "current_version": "3.0.1",
-      "weekly_downloads": 1479544,
-      "last_publish_date": "8 years ago",
-      "license": "MIT"
-    }
-  ],
-  "next_step": "bdata scraper approve c_mt4kwj0g1s40ktkdcx --url https://www.npmjs.com/package/is-odd"
-}
-```
-
-We reviewed the preview, then approved it — same Collector ID, `status`
-advances to `done`:
+It came back `awaiting_approval` with a preview row that actually had `license: "MIT"`
+in it (saved as-is in [heal-preview.json](heal-preview.json)). Approved it, same
+collector ID, status flips to `done`:
 
 ```bash
-npx -p @brightdata/cli bdata scraper approve c_mt4kwj0g1s40ktkdcx \
-  --url https://www.npmjs.com/package/is-odd --pretty
+npx -p @brightdata/cli bdata scraper approve c_mt4kwj0g1s40ktkdcx --url https://www.npmjs.com/package/is-odd --pretty
 ```
 
-**Honest result:** the heal was accepted by Bright Data's platform end to
-end (preview → approve → `done`), but in this project's testing, the
-newly-added field did not consistently reappear on subsequent live
-`scraper run` calls against this particular npm page (we tried multiple
-fields and multiple run modes — default, `--version=dev`, `--sync` — see
-[PROGRESS.md](PROGRESS.md) for the full trail of 4 heal attempts). The
-scraper's original 4 fields remained rock solid throughout. We're
-documenting this transparently rather than staging a cleaner-looking demo:
-the *heal mechanism itself* — detect a gap, describe it in plain English,
-get back a verified preview, approve in place without a new Collector ID —
-worked exactly as designed. Live extraction reliability for the added field
-on this specific site is a separate, real finding.
+Where it got annoying: the new field showed up in the approval preview but not
+reliably on actual `scraper run` calls afterward — tried a few different fields and
+run modes over a few heal attempts, same pattern each time. The original 4 fields
+never budged. Didn't want to fake a cleaner recording, so the demo shows the real
+approval flow (heal → preview → approve, same collector ID throughout) and is upfront
+that live extraction of the new field is flaky on this particular site. Whole trail of
+attempts is in PROGRESS.md if you're curious.
 
-## Project structure
+## Files
 
 ```
-.
-├── app/
-│   ├── run.js          # downstream consumer: trigger scraper, print table, log history
-│   └── history.json     # generated at runtime — one entry per run
-├── scraper/              # (reserved for any local scraper-side code/config)
-├── sample-output.json    # real output from the working 4-field scraper
-├── heal-preview.json     # real output from the heal approval gate
-├── .env.example
-├── PROGRESS.md            # full build log, decisions, and blockers as they happened
-└── README.md
+app/run.js           downstream script — triggers scraper, prints table, logs history
+app/history.json      one entry per run, generated automatically
+sample-output.json    real scraper output
+heal-preview.json     real heal approval-gate output
+docs/architecture.svg
+PROGRESS.md            build log / decisions as they happened
 ```
 
 ## Demo video
 
-TBD — link goes here once recorded.
+TBD

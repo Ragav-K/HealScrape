@@ -1,19 +1,6 @@
 #!/usr/bin/env node
-/**
- * HealScrape downstream app.
- *
- * Triggers the Bright Data Scraper Studio collector for the npm "is-odd"
- * package page, prints a clean table of the result, and appends it to a
- * local JSON history file so successive runs (including the pre/post
- * self-heal runs) are visible side by side.
- *
- * Usage:
- *   node app/run.js
- *
- * Requires a .env file at the repo root (copy .env.example -> .env) with:
- *   BRIGHT_DATA_API_TOKEN=...
- *   COLLECTOR_ID=c_xxxxxxxxxxxx
- */
+// Triggers the Scraper Studio collector, prints a table, logs the run.
+// Needs a .env with BRIGHT_DATA_API_TOKEN and COLLECTOR_ID (see .env.example).
 
 const fs = require("fs");
 const path = require("path");
