@@ -2,6 +2,7 @@
 .env.*
 !.env.example
 .claude/
+PROGRESS.md
 node_modules/
 dist/
 build/

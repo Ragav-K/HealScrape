@@ -21,8 +21,7 @@ Originally targeted an itch.io game page. Scraper built fine but every run threw
 
 Checked it wasn't my account (ran the same scraper against `example.com`, worked fine;
 plain `bdata scrape` on the itch.io URL also worked fine) — itch.io just blocks Bright
-Data's Scraper Studio crawler IP range specifically. Switched to npm instead. Full log
-of that detour is in [PROGRESS.md](PROGRESS.md) if you want the play-by-play.
+Data's Scraper Studio crawler IP range specifically. Switched to npm instead.
 
 ## Setup
 
@@ -82,8 +81,7 @@ reliably on actual `scraper run` calls afterward — tried a few different field
 run modes over a few heal attempts, same pattern each time. The original 4 fields
 never budged. Didn't want to fake a cleaner recording, so the demo shows the real
 approval flow (heal → preview → approve, same collector ID throughout) and is upfront
-that live extraction of the new field is flaky on this particular site. Whole trail of
-attempts is in PROGRESS.md if you're curious.
+that live extraction of the new field is flaky on this particular site.
 
 ## Files
 
@@ -93,7 +91,6 @@ app/history.json      one entry per run, generated automatically
 sample-output.json    real scraper output
 heal-preview.json     real heal approval-gate output
 docs/architecture.svg
-PROGRESS.md            build log / decisions as they happened
 ```
 
 ## Demo video
