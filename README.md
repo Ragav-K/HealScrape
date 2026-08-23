@@ -33,6 +33,10 @@ specifically blocking Bright Data's Scraper Studio crawler pool. That's a
 site-side block, not something fixable by re-running or healing, so the
 target was switched to npm mid-build. Full trail in [PROGRESS.md](PROGRESS.md).
 
+## Architecture
+
+![HealScrape architecture](docs/architecture.svg)
+
 ## Setup
 
 1. **Sign up for Bright Data** and apply the hackathon credit code
